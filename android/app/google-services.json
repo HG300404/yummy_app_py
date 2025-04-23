@@ -1,0 +1,90 @@
+{
+  "project_info": {
+    "project_number": "860007084287",
+    "project_id": "yummy-app-262e1",
+    "storage_bucket": "yummy-app-262e1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:860007084287:android:f259fded0e74e878fe5cca",
+        "android_client_info": {
+          "package_name": "com.example.foodApp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "860007084287-b9p8l21bbinkfrab2b6qmr2k8ndlr1mh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7V0-xsvTjPXfbjGsMAssKayqneGNgFp0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "860007084287-b9p8l21bbinkfrab2b6qmr2k8ndlr1mh.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "860007084287-jb8hoobqgce8hhh3iggnmanhta3moelk.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.foodApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:860007084287:android:bcee76c5cd68987afe5cca",
+        "android_client_info": {
+          "package_name": "com.example.food_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "860007084287-9dtmrojjdrlhh8l662jk964c1if0ml0v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.food_app",
+            "certificate_hash": "41cb0f001d0f5d7dc874da9184d6f6f943e3ca8a"
+          }
+        },
+        {
+          "client_id": "860007084287-b9p8l21bbinkfrab2b6qmr2k8ndlr1mh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7V0-xsvTjPXfbjGsMAssKayqneGNgFp0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "860007084287-b9p8l21bbinkfrab2b6qmr2k8ndlr1mh.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "860007084287-jb8hoobqgce8hhh3iggnmanhta3moelk.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.foodApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
