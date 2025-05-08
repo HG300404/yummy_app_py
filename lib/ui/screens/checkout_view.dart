@@ -1,10 +1,14 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_paypal/flutter_paypal.dart';
+import 'package:flutter_paypal_payment/flutter_paypal_payment.dart';
 import 'package:food_app/constants.dart';
 import 'package:food_app/db/orderController.dart';
 import 'package:food_app/model/orders.dart';
 import 'package:food_app/ui/screens/change_info_view.dart';
+import 'package:food_app/ui/screens/root_page.dart';
 import 'package:food_app/ui/widget/common_widget/round_button.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,18 +22,16 @@ import '../../model/restaurants.dart';
 import '../../model/users.dart';
 import 'checkout_message_view.dart';
 
-
 class CheckoutView extends StatefulWidget {
   final int resID;
   final String note;
-  const CheckoutView({super.key, required this.resID,  required this.note});
+  const CheckoutView({super.key, required this.resID, required this.note});
 
   @override
   State<CheckoutView> createState() => _CheckoutViewState();
 }
 
 class _CheckoutViewState extends State<CheckoutView> {
-
   final FirebaseController _controller = FirebaseController();
 
   List paymentArr = [
@@ -39,13 +41,13 @@ class _CheckoutViewState extends State<CheckoutView> {
   ];
 
   int selectMethod = -1;
-
+  int done = 0;
   // Định dạng giá trị
   String formatPrice(num price) {
     final formatter = NumberFormat("#,##0", "vi_VN");
     return "${formatter.format(price)}đ"; // Trả về giá dưới dạng "20.000đ"
   }
-  
+
   @override
   void initState() {
     super.initState();
@@ -54,12 +56,14 @@ class _CheckoutViewState extends State<CheckoutView> {
       _getItem();
     });
   }
+
   var user_id = 0;
   // Lấy user_id
   Future<void> _getUserId() async {
     final prefs = await SharedPreferences.getInstance();
     user_id = prefs.getInt('user_id')!;
   }
+
   void _showSnackBar(String message, Color backgroundColor) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -73,6 +77,7 @@ class _CheckoutViewState extends State<CheckoutView> {
       ),
     );
   }
+
   Users item = Users(
     id: 0,
     name: '',
@@ -103,11 +108,13 @@ class _CheckoutViewState extends State<CheckoutView> {
       print(error);
     }
   }
+
   List<dynamic> list = [];
   Map<int, Map<dynamic, dynamic>> cart = {};
   Future<void> _getCart() async {
     try {
-      ApiResponse response = await CartController().getAll(user_id, widget.resID);
+      ApiResponse response =
+          await CartController().getAll(user_id, widget.resID);
       if (response.statusCode == 200) {
         setState(() {
           list = response.body;
@@ -129,7 +136,6 @@ class _CheckoutViewState extends State<CheckoutView> {
     }
   }
 
-
   Orders order = Orders(
     id: 0,
     user_id: 0,
@@ -144,7 +150,14 @@ class _CheckoutViewState extends State<CheckoutView> {
   );
   Future<void> createOrder() async {
     try {
-      ApiResponse response = await OrderController().createOrder(user_id, widget.resID, getTotalAmount().toInt(), 5000 , item.coin, getTotal().toInt(), selectMethod);
+      ApiResponse response = await OrderController().createOrder(
+          user_id,
+          widget.resID,
+          getTotalAmount().toInt(),
+          5000,
+          item.coin,
+          getTotal().toInt(),
+          selectMethod);
       if (response.statusCode == 200) {
         setState(() {
           Map<String, dynamic> data = response.body;
@@ -158,9 +171,14 @@ class _CheckoutViewState extends State<CheckoutView> {
       print(error);
     }
   }
+
   Future<void> createOrderItem() async {
     try {
-      ApiResponse response = await OrderController().createOrderItem(order.id.toString(), user_id.toString(), widget.resID.toString(), widget.note);
+      ApiResponse response = await OrderController().createOrderItem(
+          order.id.toString(),
+          user_id.toString(),
+          widget.resID.toString(),
+          widget.note);
       if (response.statusCode == 200) {
         // setState(() {
         //   list = jsonDecode(response.body);
@@ -176,13 +194,13 @@ class _CheckoutViewState extends State<CheckoutView> {
   }
 
   Future<void> saveDataToFirebase(
-      int user_id,
-      Users item,
-      Map<int, Map<dynamic, dynamic>> cart,
-      Orders order,
-      String note,
-      int res_id,
-      ) async {
+    int user_id,
+    Users item,
+    Map<int, Map<dynamic, dynamic>> cart,
+    Orders order,
+    String note,
+    int res_id,
+  ) async {
     final Customer customer = Customer(
       name: item.name,
       address: item.address!,
@@ -193,7 +211,11 @@ class _CheckoutViewState extends State<CheckoutView> {
       dynamic dishName = value['dish_name'];
       dynamic dishPrice = value['dish_price'];
       dynamic dishQuantity = value['quantity'];
-      Dish dish = Dish(name: dishName, price: dishPrice, quantity: dishQuantity, options: note);
+      Dish dish = Dish(
+          name: dishName,
+          price: dishPrice,
+          quantity: dishQuantity,
+          options: note);
       dishes.add(dish);
     });
     // final Customer customer;
@@ -216,11 +238,13 @@ class _CheckoutViewState extends State<CheckoutView> {
     // Gọi hàm saveDataToFirebase để lưu dữ liệu
     FirebaseController().saveDataToFirebase(data);
   }
+
   Future<bool> handleOrderCreation() async {
     try {
       await createOrder();
       await createOrderItem();
-      await saveDataToFirebase(user_id, item, cart, order, widget.note, widget.resID);
+      await saveDataToFirebase(
+          user_id, item, cart, order, widget.note, widget.resID);
       return true;
     } catch (error) {
       print(error);
@@ -228,10 +252,9 @@ class _CheckoutViewState extends State<CheckoutView> {
     }
   }
 
-
   num getTotalAmount() {
     num total = 0;
-    for (var item in cart.values){
+    for (var item in cart.values) {
       total += item['dish_price'] * item['quantity'];
     }
     return total;
@@ -241,6 +264,7 @@ class _CheckoutViewState extends State<CheckoutView> {
     num total = getTotalAmount() + 5000 - item.coin;
     return total;
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -282,15 +306,15 @@ class _CheckoutViewState extends State<CheckoutView> {
               ),
               Padding(
                 padding:
-                const EdgeInsets.symmetric(vertical: 15, horizontal: 25),
+                    const EdgeInsets.symmetric(vertical: 15, horizontal: 25),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       "Địa chỉ giao hàng",
                       textAlign: TextAlign.center,
-                      style:
-                      TextStyle(color: Constants.highlightColor, fontSize: 12),
+                      style: TextStyle(
+                          color: Constants.highlightColor, fontSize: 12),
                     ),
                     const SizedBox(
                       height: 8,
@@ -315,8 +339,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                             final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) =>
-                                  const ChangeInfoView()),
+                                  builder: (context) => const ChangeInfoView()),
                             );
                           },
                           child: Text(
@@ -384,8 +407,8 @@ class _CheckoutViewState extends State<CheckoutView> {
                                 color: Constants.textfield,
                                 borderRadius: BorderRadius.circular(5),
                                 border: Border.all(
-                                    color:
-                                    Constants.highlightColor.withOpacity(0.2))),
+                                    color: Constants.highlightColor
+                                        .withOpacity(0.2))),
                             child: Row(
                               children: [
                                 Image.asset(pObj["icon"].toString(),
@@ -545,23 +568,106 @@ class _CheckoutViewState extends State<CheckoutView> {
               ),
               Padding(
                 padding:
-                const EdgeInsets.symmetric(vertical: 20, horizontal: 25),
+                    const EdgeInsets.symmetric(vertical: 20, horizontal: 25),
                 child: RoundButton(
                     title: "Đặt hàng",
                     onPressed: () {
-                      handleOrderCreation().then((success) {
-                        if (success) {
-                          showModalBottomSheet(
-                              context: context,
-                              backgroundColor: Colors.pinkAccent,
-                              isScrollControlled: true,
-                              builder: (context) {
-                                return const CheckoutMessageView();
-                              });
-                        } else {
-                          print('Order creation failed');
-                        }
-                      });
+                      int total = getTotal().toInt();
+                      int price = total - 5000;
+                      print(price);
+                      if (selectMethod == 2 && done == 0) {
+                        List<Map<String, dynamic>> itemsList =
+                            cart.entries.map((entry) {
+                          print("Entry value: ${entry.value}");
+                          return {
+                            "name": entry.value['dish_name'],
+                            "quantity": entry.value['quantity'],
+                            "price": entry.value['dish_price'],
+                            "currency": "USD"
+                          };
+                        }).toList();
+
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (BuildContext context) => PaypalCheckoutView(
+                            sandboxMode: true,
+                            clientId: "ARKK4HlvBI37lJKNuW_zQQuR7psUZFPj9rZE-j6kI8cF2ucDXksfubNWvgwpk-t5GPWKcW8E-KGlcb2R",
+                            secretKey: "EObXvdcnQG3uUoW7gMOrKMnbZZTTWg226I1Sedx1Ox90dUhVg0WRV6voIi_RoMXTs8FR5AD3TBi5s8UO",
+                            transactions: const [
+                              {
+                                "amount": {
+                                  "total": '100',
+                                  "currency": "USD",
+                                  "details": {
+                                    "subtotal": '100',
+                                    "shipping": '0',
+                                    "shipping_discount": 0
+                                  }
+                                },
+                                "description":
+                                    "The payment transaction description.",
+                                // "payment_options": {
+                                //   "allowed_payment_method":
+                                //       "INSTANT_FUNDING_SOURCE"
+                                // },
+                                "item_list": {
+                                  "items": [
+                                    {
+                                      "name": "Apple",
+                                      "quantity": 4,
+                                      "price": '10',
+                                      "currency": "USD"
+                                    },
+                                    {
+                                      "name": "Pineapple",
+                                      "quantity": 5,
+                                      "price": '12',
+                                      "currency": "USD"
+                                    }
+                                  ],
+
+                                  // Optional
+                                  //   "shipping_address": {
+                                  //     "recipient_name": "Tharwat samy",
+                                  //     "line1": "tharwat",
+                                  //     "line2": "",
+                                  //     "city": "tharwat",
+                                  //     "country_code": "EG",
+                                  //     "postal_code": "25025",
+                                  //     "phone": "+00000000",
+                                  //     "state": "ALex"
+                                  //  },
+                                }
+                              }
+                            ],
+                            note: "Contact us for any questions on your order.",
+                            onSuccess: (Map params) async {
+                              log("onSuccess: $params");
+                              Navigator.pop(context);
+                            },
+                            onError: (error) {
+                              log("onError: $error");
+                              Navigator.pop(context);
+                            },
+                            onCancel: () {
+                              print('cancelled:');
+                              Navigator.pop(context);
+                            },
+                          ),
+                        ));
+                      } else {
+                        handleOrderCreation().then((success) {
+                          if (success) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RootPage(),
+                              ),
+                            );
+                          } else {
+                            print('Order creation failed');
+                          }
+                        });
+                      }
                     }),
               ),
             ],
