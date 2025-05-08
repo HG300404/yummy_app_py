@@ -15,6 +15,7 @@ import '../widget/common_widget/popular_resutaurant_row.dart';
 import '../widget/common_widget/recent_item_row.dart';
 import '../widget/common_widget/round_textfield.dart';
 import '../widget/common_widget/view_all_title_row.dart';
+import 'chat.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -66,7 +67,6 @@ class _HomePageState extends State<HomePage> {
       ApiResponse response = await DishController().getTop();
       if (response.statusCode == 200) {
         setState(() {
-          // topDishes = jsonDecode(response.body);
           topDishes = response.body;
         });
       } else {
@@ -82,7 +82,6 @@ class _HomePageState extends State<HomePage> {
       ApiResponse response = await RestaurantController().getTop();
       if (response.statusCode == 200) {
         setState(() {
-           // topRes = jsonDecode(response.body);
           topRes = response.body;
         });
       } else {
@@ -137,12 +136,9 @@ class _HomePageState extends State<HomePage> {
                           fontWeight: FontWeight.w800),
                     ),
                     IconButton(
-                       onPressed: () {
-                         // Navigator.push(
-                         // context,
-                         //     MaterialPageRoute(
-                         //  builder: (context) => const MyOrderView()));
-                 },
+                      onPressed: () {
+                        // Navigate to the order view
+                      },
                       icon: Image.asset(
                         "assets/images/shopping-cart.png",
                         width: 25,
@@ -275,6 +271,24 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
+      // Floating action button for the chat icon
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // Navigate to ChatScreen when the button is pressed
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(),
+            ),
+          );
+        },
+        backgroundColor: Constants.primaryColor,  // Set the color as you wish
+        child: Icon(
+          Icons.chat_bubble,  // You can use your own image here too
+          color: Colors.white,
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,  // Position it at the bottom right corner
     );
   }
 }
