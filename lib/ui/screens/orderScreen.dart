@@ -40,7 +40,7 @@ class _OrderScreenState extends State<OrderScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 3, vsync: this,  initialIndex: 0);
     _tabController.addListener(_tabChanged); // Lắng nghe sự thay đổi tab
     _getUserId().then((_) {
       _getItem();

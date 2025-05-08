@@ -20,10 +20,11 @@ class FirebaseController {
       try {
         final firebaseModels = docs.map((doc) => FirebaseModel.fromMap(doc.data() as Map<String, dynamic>)).toList();
         if (firebaseModels.isEmpty) {
+          print("empty");
           return [];
         } else {
 
-          // print(firebaseModelListToString(firebaseModels));
+          //print(firebaseModelListToString(firebaseModels));
           return firebaseModels;
         }
       } catch (e) {
