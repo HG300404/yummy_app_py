@@ -170,7 +170,7 @@ class DangDenTab extends StatelessWidget {
         } else {
           final user_id = snapshot.data ?? 0;
           return StreamBuilder<List<FirebaseModel>>(
-            stream: _controller.getAll(user_id.toInt()),
+            stream: _controller.getAll(user_id.toInt(), "Hoàn thành"),
             builder: (context, snapshot1) {
               if (snapshot1.data == null || snapshot1.data!.isEmpty) {
                 return Center(
