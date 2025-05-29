@@ -1,0 +1,2 @@
+E:/n8n/prj_final/final-app/yummy_app_py/android/app/.cxx/Debug/22c5l4y3/x86_64/CMakeFiles/edit_cache.dir
+E:/n8n/prj_final/final-app/yummy_app_py/android/app/.cxx/Debug/22c5l4y3/x86_64/CMakeFiles/rebuild_cache.dir

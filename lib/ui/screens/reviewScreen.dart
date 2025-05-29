@@ -6,6 +6,7 @@ import 'package:food_app/constants.dart';
 import 'package:food_app/ui/screens/orderScreen.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../db/chatMessageController.dart';
 import '../../db/reviewController.dart';
 import '../../db/userController.dart';
 
@@ -20,6 +21,7 @@ class ReviewScreen extends StatefulWidget {
 class _ReviewScreenState extends State<ReviewScreen> {
   int _selectedStars = 0;
   final commentController = TextEditingController();
+  final ChatController _chatController = ChatController();
 
   @override
   Widget build(BuildContext context) {
@@ -32,19 +34,38 @@ class _ReviewScreenState extends State<ReviewScreen> {
             onPressed: () async {
               print(widget.resID);
               try {
-                //String user_id, String restaurant_id, String rating, String order_id, String comment
-                ApiResponse response = await ReviewController().create(widget.userID.toString(), widget.resID.toString(), _selectedStars.toString(), widget.orderID.toString(), commentController.text );
+                // Gọi API tạo review
+                ApiResponse response = await ReviewController().create(
+                  widget.userID.toString(),
+                  widget.resID.toString(),
+                  _selectedStars.toString(),
+                  widget.orderID.toString(),
+                  commentController.text,
+                );
+
                 if (response.statusCode == 200) {
-                    var jsonResponse = response.body;
-                    if (jsonResponse['status'] == 'success') {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (context) => OrderScreen()),
-                      );
-                    }
+                  var jsonResponse = response.body;
+                  if (jsonResponse['status'] == 'success') {
+
+                    final sendN8nResult = await _chatController.sendCommentToN8n(
+                      userId: widget.userID.toString(),
+                      comment: commentController.text,
+                      rating: _selectedStars,
+                      orderId: widget.orderID.toString(),
+                      restaurantId: widget.resID.toString(),
+                    );
+
+                    print('sendCommentToN8n result: $sendN8nResult');
+
+                    // Chuyển màn sau khi xong cả 2 sự kiện
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context) => OrderScreen()),
+                    );
+                  }
                 }
               } catch (error) {
-                // Xử lý lỗi (nếu có)
                 print(error);
+                // Có thể show message lỗi ở đây
               }
             },
             child: Text(
@@ -52,6 +73,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
               style: TextStyle(color: Constants.white, fontSize: 18),
             ),
           ),
+
         ],
       ),
       body: Padding(
