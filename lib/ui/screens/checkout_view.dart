@@ -3,11 +3,11 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_paypal/flutter_paypal.dart';
-import 'package:flutter_paypal_payment/flutter_paypal_payment.dart';
 import 'package:food_app/constants.dart';
 import 'package:food_app/db/orderController.dart';
 import 'package:food_app/model/orders.dart';
 import 'package:food_app/ui/screens/change_info_view.dart';
+import 'package:food_app/ui/screens/orderScreen.dart';
 import 'package:food_app/ui/screens/root_page.dart';
 import 'package:food_app/ui/widget/common_widget/round_button.dart';
 import 'package:intl/intl.dart';
@@ -588,69 +588,50 @@ class _CheckoutViewState extends State<CheckoutView> {
                         }).toList();
 
                         Navigator.of(context).push(MaterialPageRoute(
-                          builder: (BuildContext context) => PaypalCheckoutView(
+                          builder: (BuildContext context) => UsePaypal(
                             sandboxMode: true,
                             clientId: "ARKK4HlvBI37lJKNuW_zQQuR7psUZFPj9rZE-j6kI8cF2ucDXksfubNWvgwpk-t5GPWKcW8E-KGlcb2R",
                             secretKey: "EObXvdcnQG3uUoW7gMOrKMnbZZTTWg226I1Sedx1Ox90dUhVg0WRV6voIi_RoMXTs8FR5AD3TBi5s8UO",
-                            transactions: const [
+                            returnURL: "https://samplesite.com/return",
+                            cancelURL: "https://samplesite.com/cancel",
+                            transactions: [
                               {
                                 "amount": {
-                                  "total": '100',
+                                  "total": getTotal().toString(),  // Chuyển đổi thành chuỗi
                                   "currency": "USD",
                                   "details": {
-                                    "subtotal": '100',
-                                    "shipping": '0',
-                                    "shipping_discount": 0
+                                    "subtotal": (getTotal() - 5000).toString(), // Chuyển thành chuỗi
+                                    "shipping": "5000",  // Phí vận chuyển, cần phải là chuỗi
                                   }
                                 },
-                                "description":
-                                    "The payment transaction description.",
-                                // "payment_options": {
-                                //   "allowed_payment_method":
-                                //       "INSTANT_FUNDING_SOURCE"
-                                // },
                                 "item_list": {
-                                  "items": [
-                                    {
-                                      "name": "Apple",
-                                      "quantity": 4,
-                                      "price": '10',
-                                      "currency": "USD"
-                                    },
-                                    {
-                                      "name": "Pineapple",
-                                      "quantity": 5,
-                                      "price": '12',
-                                      "currency": "USD"
-                                    }
-                                  ],
-
-                                  // Optional
-                                  //   "shipping_address": {
-                                  //     "recipient_name": "Tharwat samy",
-                                  //     "line1": "tharwat",
-                                  //     "line2": "",
-                                  //     "city": "tharwat",
-                                  //     "country_code": "EG",
-                                  //     "postal_code": "25025",
-                                  //     "phone": "+00000000",
-                                  //     "state": "ALex"
-                                  //  },
+                                  "items": itemsList,
                                 }
                               }
                             ],
                             note: "Contact us for any questions on your order.",
                             onSuccess: (Map params) async {
-                              log("onSuccess: $params");
-                              Navigator.pop(context);
+                              done = 1;
+                              print("onSuccess: $params");
+                              handleOrderCreation().then((success) {
+                                if (success) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>OrderScreen(),
+                                    ),
+                                  );
+                                } else {
+                                  print('Order creation failed');
+                                }
+                              });
                             },
                             onError: (error) {
-                              log("onError: $error");
-                              Navigator.pop(context);
+                              print("onError: $error");
+                             // Navigator.pop(context);
                             },
-                            onCancel: () {
-                              print('cancelled:');
-                              Navigator.pop(context);
+                            onCancel: (params) {
+                              print('cancelled: $params');
                             },
                           ),
                         ));
@@ -660,7 +641,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => RootPage(),
+                                builder: (context) => OrderScreen(),
                               ),
                             );
                           } else {

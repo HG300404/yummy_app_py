@@ -6,7 +6,7 @@ class Restaurants {
   final String? address;
   final String? phone;
   final String? opening_hours;
-  final int? total_rate;
+  final double? total_rate;
   final int? review_count;
   final Timestamp? created_at;
   final Timestamp? updated_at;
@@ -46,7 +46,7 @@ class Restaurants {
         address = map['address'] ?? '',
         phone = map['phone'] ?? '',
         opening_hours = map['opening_hours'] ?? '',
-        total_rate = map['total_rate'] ?? null,
+        total_rate = map['total_rate'] ?? 0.0,
         review_count = map['review_count'] ?? null,
         created_at = (map['created_at'] != null) ? Timestamp.fromDate(DateTime.parse(map['created_at'])) : null,
         updated_at = (map['updated_at'] != null) ? Timestamp.fromDate(DateTime.parse(map['updated_at'])) : null;

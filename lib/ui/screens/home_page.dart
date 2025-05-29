@@ -16,7 +16,7 @@ import '../widget/common_widget/recent_item_row.dart';
 import '../widget/common_widget/round_textfield.dart';
 import '../widget/common_widget/view_all_title_row.dart';
 import 'orderScreen.dart';
-
+import 'chat.dart';
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -276,6 +276,23 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // Navigate to ChatScreen when the button is pressed
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(),
+            ),
+          );
+        },
+        backgroundColor: Constants.primaryColor,  // Set the color as you wish
+        child: Icon(
+          Icons.chat_bubble,  // You can use your own image here too
+          color: Colors.white,
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,  // Position it at the bottom right corner
     );
   }
 }
