@@ -40,7 +40,7 @@ class _OrderScreenState extends State<OrderScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 3, vsync: this,  initialIndex: 0);
     _tabController.addListener(_tabChanged); // Lắng nghe sự thay đổi tab
     _getUserId().then((_) {
       _getItem();
@@ -170,7 +170,7 @@ class DangDenTab extends StatelessWidget {
         } else {
           final user_id = snapshot.data ?? 0;
           return StreamBuilder<List<FirebaseModel>>(
-            stream: _controller.getAll(user_id.toInt()),
+            stream: _controller.getAll(user_id.toInt(), "Hoàn thành"),
             builder: (context, snapshot1) {
               if (snapshot1.data == null || snapshot1.data!.isEmpty) {
                 return Center(
@@ -534,7 +534,12 @@ class LichSuTab extends StatelessWidget {
   }
 }
 
-class DanhGiaTab extends StatelessWidget {
+class DanhGiaTab extends StatefulWidget {
+  @override
+  _DanhGiaTabState createState() => _DanhGiaTabState();
+}
+
+class _DanhGiaTabState extends State<DanhGiaTab> {
   // Định dạng giá trị
   String formatPrice(num price) {
     final formatter = NumberFormat("#,##0", "vi_VN");
@@ -546,7 +551,6 @@ class DanhGiaTab extends StatelessWidget {
     return prefs.getInt('user_id') ?? 0;
   }
 
-  String done = "Đã đánh giá";
   final FirebaseController _controller = FirebaseController();
 
   @override
@@ -563,15 +567,11 @@ class DanhGiaTab extends StatelessWidget {
           return StreamBuilder<List<FirebaseModel>>(
             stream: _controller.getOrdered(user_id.toInt(), "Hoàn thành"),
             builder: (context, snapshot1) {
-              // Kiểm tra nếu không có dữ liệu
               if (snapshot1.data == null || snapshot1.data!.isEmpty) {
                 return Center(
                   child: Text(
-                    "Không có đơn hàng cần đánh giá", // Dòng chữ thông báo
-                    style: TextStyle(
-                      color: Colors.grey, // Màu chữ nhạt
-                      fontSize: 16, // Kích thước chữ
-                    ),
+                    "Không có đơn hàng cần đánh giá",
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
                   ),
                 );
               } else {
@@ -595,7 +595,6 @@ class DanhGiaTab extends StatelessWidget {
                       try {
                         ApiResponse response =
                         await RestaurantController().getItem(resId);
-
                         if (response.statusCode == 200) {
                           Map<String, dynamic> data = response.body;
                           res = Restaurants.fromMap(data);
@@ -603,7 +602,6 @@ class DanhGiaTab extends StatelessWidget {
                       } catch (error) {
                         print(error);
                       }
-
                       return res;
                     }
 
@@ -628,11 +626,9 @@ class DanhGiaTab extends StatelessWidget {
                               created_at: null,
                               updated_at: null,
                             );
-
                             try {
-                              ApiResponse response = await ReviewController()
-                                  .getItem(order.order_id);
-
+                              ApiResponse response =
+                              await ReviewController().getItem(order_id);
                               if (response.statusCode == 200) {
                                 Map<String, dynamic> data = response.body;
                                 reviews = Reviews.fromMap(data);
@@ -640,23 +636,24 @@ class DanhGiaTab extends StatelessWidget {
                             } catch (error) {
                               print(error);
                             }
-
                             return reviews;
                           }
 
                           return FutureBuilder<Reviews>(
                             future: _getReview(order.order_id),
                             builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
                                 return CircularProgressIndicator();
                               } else if (snapshot.hasError) {
                                 return Text("Error: ${snapshot.error}");
                               } else {
-                                Reviews? review = snapshot.data;
-                                if (review?.id == null) {
-                                  done = "Đánh giá";
-                                }
+                                // Kiểm tra xem đơn hàng đã đánh giá chưa
+                                bool isReviewed =
+                                snapshot.hasData &&
+                                    snapshot.data != null &&
+                                    snapshot.data!.id != 0
+                                    ? true
+                                    : false;
 
                                 return Card(
                                   margin: EdgeInsets.all(10),
@@ -664,7 +661,8 @@ class DanhGiaTab extends StatelessWidget {
                                   child: Padding(
                                     padding: EdgeInsets.all(10),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
                                       children: [
                                         Text('Đồ ăn ${order.order_id}',
                                             style: TextStyle(
@@ -679,23 +677,21 @@ class DanhGiaTab extends StatelessWidget {
                                         SizedBox(height: 5),
                                         FutureBuilder(
                                           future: OrderController()
-                                              .getAllByOrder(order!.order_id),
+                                              .getAllByOrder(order.order_id),
                                           builder: (context, snapshot) {
                                             if (snapshot.connectionState ==
                                                 ConnectionState.waiting) {
                                               return CircularProgressIndicator();
                                             } else if (snapshot.hasError) {
-                                              return Text(
-                                                  "Error: ${snapshot.error}");
+                                              return Text("Error: ${snapshot.error}");
                                             } else if (snapshot.data == null ||
                                                 snapshot.data!.body == null) {
                                               return Center(
                                                 child: Text(
                                                   "Không có đơn hàng",
                                                   style: TextStyle(
-                                                    color: Colors.grey, // Màu chữ nhạt
-                                                    fontSize: 16,
-                                                  ),
+                                                      color: Colors.grey,
+                                                      fontSize: 16),
                                                 ),
                                               );
                                             } else {
@@ -715,44 +711,28 @@ class DanhGiaTab extends StatelessWidget {
                                                         children: [
                                                           Column(
                                                             crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
+                                                            CrossAxisAlignment.start,
                                                             children: [
                                                               Padding(
                                                                 padding: const EdgeInsets
-                                                                    .symmetric(
-                                                                    vertical:
-                                                                    5.0),
+                                                                    .symmetric(vertical: 5.0),
                                                                 child: Row(
                                                                   children: [
                                                                     Padding(
-                                                                      padding:
-                                                                      const EdgeInsets
-                                                                          .all(10),
-                                                                      child:
-                                                                      (orderItem[
-                                                                      'dish_img'] !=
-                                                                          null &&
-                                                                          orderItem['dish_img']
-                                                                              .startsWith(
-                                                                              'data:image/jpeg;base64,'))
+                                                                      padding: const EdgeInsets.all(10),
+                                                                      child: (orderItem['dish_img'] != null &&
+                                                                          orderItem['dish_img'].startsWith('data:image/jpeg;base64,'))
                                                                           ? Image.memory(
-                                                                        base64Decode(orderItem['dish_img']
-                                                                            .substring(
-                                                                            'data:image/jpeg;base64,'.length)),
+                                                                        base64Decode(orderItem['dish_img'].substring('data:image/jpeg;base64,'.length)),
                                                                         width: 60,
                                                                         height: 60,
                                                                         fit: BoxFit.cover,
-                                                                        errorBuilder:
-                                                                            (BuildContext context,
-                                                                            Object exception,
-                                                                            StackTrace? stackTrace) {
-                                                                          return const Icon(
-                                                                              Icons.error);
+                                                                        errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+                                                                          return const Icon(Icons.error);
                                                                         },
                                                                       )
                                                                           : Image.asset(
-                                                                        "assets/images/image.png", // Hình ảnh mặc định nếu không có base64 hợp lệ
+                                                                        "assets/images/image.png",
                                                                         width: 60,
                                                                         height: 60,
                                                                         fit: BoxFit.cover,
@@ -760,12 +740,8 @@ class DanhGiaTab extends StatelessWidget {
                                                                     ),
                                                                     SizedBox(width: 10),
                                                                     Text(
-                                                                      orderItem[
-                                                                      'dish_name'],
-                                                                      style: TextStyle(
-                                                                        color: Constants.textColor,
-                                                                        fontSize: 15,
-                                                                      ),
+                                                                      orderItem['dish_name'],
+                                                                      style: TextStyle(color: Constants.textColor, fontSize: 15),
                                                                     ),
                                                                   ],
                                                                 ),
@@ -774,24 +750,15 @@ class DanhGiaTab extends StatelessWidget {
                                                           ),
                                                           Spacer(),
                                                           Column(
-                                                            crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .end,
+                                                            crossAxisAlignment: CrossAxisAlignment.end,
                                                             children: [
                                                               Text(
                                                                 formatPrice(order.total),
-                                                                style: TextStyle(
-                                                                  color: Constants.primaryColor,
-                                                                  fontSize: 16,
-                                                                ),
+                                                                style: TextStyle(color: Constants.primaryColor, fontSize: 16),
                                                               ),
                                                               Text(
                                                                 '${orderItem['quantity']} món',
-                                                                style: TextStyle(
-                                                                  color: Constants
-                                                                      .lightTextColor,
-                                                                  fontSize: 16,
-                                                                ),
+                                                                style: TextStyle(color: Constants.lightTextColor, fontSize: 16),
                                                               ),
                                                             ],
                                                           ),
@@ -807,57 +774,45 @@ class DanhGiaTab extends StatelessWidget {
                                         ),
                                         Row(
                                           mainAxisAlignment:
-                                          MainAxisAlignment
-                                              .spaceBetween,
+                                          MainAxisAlignment.spaceBetween,
                                           children: [
                                             Expanded(
                                               child: ElevatedButton(
-                                                style:
-                                                ElevatedButton.styleFrom(
-                                                  foregroundColor:
-                                                  Colors.white,
-                                                  backgroundColor:
-                                                  Colors.pinkAccent,
+                                                style: ElevatedButton.styleFrom(
+                                                  foregroundColor: Colors.white,
+                                                  backgroundColor: Colors.pinkAccent,
                                                 ),
-                                                onPressed: () {
-                                                  if (done ==
-                                                      "Đánh giá") {
-                                                    print(res!.id);
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                          builder: (context) => ReviewScreen(
-                                                              resID: res!
-                                                                  .id,
-                                                              userID:
-                                                              user_id,
-                                                              orderID:
-                                                              order.order_id)),
-                                                    );
-                                                  }
+                                                onPressed: isReviewed
+                                                    ? null
+                                                    : () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) => ReviewScreen(
+                                                        resID: res!.id,
+                                                        userID: user_id,
+                                                        orderID: order.order_id,
+                                                      ),
+                                                    ),
+                                                  ).then((_) {
+                                                    setState(() {}); // Refresh to show updated status
+                                                  });
                                                 },
-                                                child: Text("${done}"),
+                                                child: Text(isReviewed ? "Đã đánh giá" : "Đánh giá"),
                                               ),
                                             ),
                                             SizedBox(width: 5),
                                             Expanded(
                                               child: ElevatedButton(
-                                                style:
-                                                ElevatedButton.styleFrom(
-                                                  foregroundColor:
-                                                  Colors.pinkAccent,
-                                                  backgroundColor:
-                                                  Colors.white,
+                                                style: ElevatedButton.styleFrom(
+                                                  foregroundColor: Colors.pinkAccent,
+                                                  backgroundColor: Colors.white,
                                                 ),
                                                 onPressed: () {
                                                   Navigator.push(
                                                       context,
                                                       MaterialPageRoute(
-                                                          builder:
-                                                              (context) =>
-                                                              DetailDish(
-                                                                  resID: res!.id) //replace with your new page
-                                                      ));
+                                                          builder: (context) => DetailDish(resID: res!.id)));
                                                 },
                                                 child: Text('Đặt lại'),
                                               ),
@@ -884,6 +839,7 @@ class DanhGiaTab extends StatelessWidget {
     );
   }
 }
+
 
 class GioHangTab extends StatelessWidget {
   final Map<int, Map<dynamic, dynamic>> cart;

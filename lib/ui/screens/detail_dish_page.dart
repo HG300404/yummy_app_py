@@ -70,6 +70,7 @@ class _DetailDishState extends State<DetailDish> with SingleTickerProviderStateM
     id: 0,
     name: '',
     address: '',
+    total_rate:0 ,
     phone: '',
     opening_hours: '',
     created_at: null,
