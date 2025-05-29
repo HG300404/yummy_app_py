@@ -256,7 +256,7 @@ class _CheckoutViewState extends State<CheckoutView> {
     };
     print('VNPay order body: $body');
     final response = await http.post(
-      Uri.parse('https://7e53-2001-ee1-db01-fd0-854d-a1a9-43df-30e3.ngrok-free.app/api/orders/vnpay/'),
+      Uri.parse('https://6ac5-117-3-0-140.ngrok-free.app/api/orders/vnpay/'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(body),
     );
@@ -604,7 +604,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                               MaterialPageRoute(
                                 builder: (context) => VnpayWebView(
                                   paymentUrl: paymentUrl,
-                                  onPaymentResult: (success, orderId) {
+                                  onPaymentResult: (success, orderIdFromVnpay) async {
                                     Navigator.of(context).pop(); // Đóng WebView trước
                                     if (success) {
                                       Navigator.of(context).popUntil((route) => route.isFirst);
@@ -613,6 +613,27 @@ class _CheckoutViewState extends State<CheckoutView> {
                                           content: Text('Thanh toán VNPay thành công!'),
                                           backgroundColor: Colors.green,
                                         ),
+                                      );
+                                      // KHÔNG gọi handleOrderCreation nữa!
+                                      // Thay vào đó, chỉ lưu vào Firebase với orderId từ VNPay
+                                      order = Orders(
+                                        id: orderIdFromVnpay ?? orderId,
+                                        user_id: user_id,
+                                        restaurant_id: widget.resID,
+                                        price: getTotalAmount().toInt(),
+                                        ship: 5000,
+                                        discount: item.coin,
+                                        total_amount: getTotal().toInt(),
+                                        payment: 'VNPay',
+                                        created_at: null,
+                                        updated_at: null,
+                                      );
+                                      await saveDataToFirebase(user_id, item, cart, order, widget.note, widget.resID);
+                                      showModalBottomSheet(
+                                        context: context,
+                                        backgroundColor: Colors.pinkAccent,
+                                        isScrollControlled: true,
+                                        builder: (context) => const CheckoutMessageView(),
                                       );
                                     } else {
                                       _showSnackBar('Thanh toán thất bại hoặc bị hủy.', Colors.red);
