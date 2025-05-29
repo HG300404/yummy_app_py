@@ -67,6 +67,7 @@ class _HomePageState extends State<HomePage> {
       ApiResponse response = await DishController().getTop();
       if (response.statusCode == 200) {
         setState(() {
+          // topDishes = jsonDecode(response.body);
           topDishes = response.body;
         });
       } else {
@@ -82,6 +83,7 @@ class _HomePageState extends State<HomePage> {
       ApiResponse response = await RestaurantController().getTop();
       if (response.statusCode == 200) {
         setState(() {
+           // topRes = jsonDecode(response.body);
           topRes = response.body;
         });
       } else {
@@ -136,14 +138,12 @@ class _HomePageState extends State<HomePage> {
                           fontWeight: FontWeight.w800),
                     ),
                     IconButton(
-
                        onPressed: () {
                          // Navigator.push(
                          // context,
                          //     MaterialPageRoute(
                          //  builder: (context) => OrderScreen()));
                  },
-
                       icon: Image.asset(
                         "assets/images/shopping-cart.png",
                         width: 25,
@@ -276,7 +276,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // Navigate to ChatScreen when the button is pressed
