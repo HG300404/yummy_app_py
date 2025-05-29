@@ -247,11 +247,12 @@ class _SignInState extends State<SignIn> {
         if (jsonResponse['status'] == 'success') {
           saveUserId(jsonResponse['user']['id']);
 
-          Navigator.push(
+          Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
               builder: (context) => RootPage(),
             ),
+            (route) => false,
           );
         } else {
           _showSnackBar(jsonResponse['message'], Colors.red);

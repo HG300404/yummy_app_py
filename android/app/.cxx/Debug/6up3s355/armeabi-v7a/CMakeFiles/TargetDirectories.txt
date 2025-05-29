@@ -1,0 +1,2 @@
+D:/yummy_app_py/android/app/.cxx/Debug/6up3s355/armeabi-v7a/CMakeFiles/edit_cache.dir
+D:/yummy_app_py/android/app/.cxx/Debug/6up3s355/armeabi-v7a/CMakeFiles/rebuild_cache.dir

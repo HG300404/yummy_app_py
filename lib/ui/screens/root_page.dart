@@ -6,6 +6,8 @@ import 'package:food_app/ui/screens/orderScreen.dart';
 import 'package:food_app/ui/screens/profile_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'listChatScreen.dart';
+
 class RootPage extends StatefulWidget {
   const RootPage({super.key});
 
@@ -21,14 +23,15 @@ class _RootPageState extends State<RootPage> {
   List<Widget> pages =  [
     HomePage(),
     OrderScreen(),
+    ChatListScreen(),
     ProfileView(),
   ];
 
   // List of the page icons
-  List<IconData> iconList = [Icons.home, Icons.list_alt_outlined, Icons.person];
+  List<IconData> iconList = [Icons.home, Icons.list_alt_outlined, Icons.message, Icons.person];
 
   // List of the pages titles
-  List<String> titleList = ["Trang chủ", "Đơn hàng", "Thông tin cá nhân"];
+  List<String> titleList = ["Trang chủ", "Đơn hàng", "Tin nhắn", "Thông tin cá nhân"];
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +41,6 @@ class _RootPageState extends State<RootPage> {
         children: pages,
       ),
 
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: AnimatedBottomNavigationBar(
           splashColor: Constants.primaryColor,
           activeColor: Constants.primaryColor,

@@ -533,14 +533,10 @@ class LichSuTab extends StatelessWidget {
     );
   }
 }
+class DanhGiaTab extends StatelessWidget {
+  // Định dạng giá trị tiền
 
-class DanhGiaTab extends StatefulWidget {
-  @override
-  _DanhGiaTabState createState() => _DanhGiaTabState();
-}
 
-class _DanhGiaTabState extends State<DanhGiaTab> {
-  // Định dạng giá trị
   String formatPrice(num price) {
     final formatter = NumberFormat("#,##0", "vi_VN");
     return "${formatter.format(price)}đ";
@@ -571,15 +567,19 @@ class _DanhGiaTabState extends State<DanhGiaTab> {
                 return Center(
                   child: Text(
                     "Không có đơn hàng cần đánh giá",
-                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+
                   ),
                 );
               } else {
-                final orders = snapshot1.data;
+                final orders = snapshot1.data!;
                 return ListView.builder(
-                  itemCount: orders?.length ?? 0,
+                  itemCount: orders.length,
                   itemBuilder: (context, index) {
-                    final order = orders?[index];
+                    final order = orders[index];
 
                     Future<Restaurants> _getItem(int resId) async {
                       Restaurants res = Restaurants(
@@ -605,13 +605,40 @@ class _DanhGiaTabState extends State<DanhGiaTab> {
                       return res;
                     }
 
+                    Future<Reviews> _getReview(int order_id) async {
+                      Reviews reviews = Reviews(
+                        id: 0,
+                        order_id: 0,
+                        user_id: 0,
+                        restaurant_id: 0,
+                        rating: 0,
+                        comment: '',
+                        created_at: null,
+                        updated_at: null,
+                      );
+
+                      try {
+                        ApiResponse response =
+                        await ReviewController().getItem(order_id);
+
+                        if (response.statusCode == 200) {
+                          Map<String, dynamic> data = response.body;
+                          reviews = Reviews.fromMap(data);
+                        }
+                      } catch (error) {
+                        print(error);
+                      }
+
+                      return reviews;
+                    }
+
                     return FutureBuilder<Restaurants>(
-                      future: _getItem(order!.res_id),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                      future: _getItem(order.res_id),
+                      builder: (context, snapshotRes) {
+                        if (snapshotRes.connectionState == ConnectionState.waiting) {
                           return CircularProgressIndicator();
-                        } else if (snapshot.hasError) {
-                          return Text("Error: ${snapshot.error}");
+                        } else if (snapshotRes.hasError) {
+                          return Text("Error: ${snapshotRes.error}");
                         } else {
                           Restaurants? res = snapshot.data;
 
@@ -644,16 +671,18 @@ class _DanhGiaTabState extends State<DanhGiaTab> {
                             builder: (context, snapshot) {
                               if (snapshot.connectionState == ConnectionState.waiting) {
                                 return CircularProgressIndicator();
-                              } else if (snapshot.hasError) {
-                                return Text("Error: ${snapshot.error}");
+                              } else if (snapshotReview.hasError) {
+                                return Text("Error: ${snapshotReview.error}");
                               } else {
-                                // Kiểm tra xem đơn hàng đã đánh giá chưa
-                                bool isReviewed =
-                                snapshot.hasData &&
-                                    snapshot.data != null &&
-                                    snapshot.data!.id != 0
-                                    ? true
-                                    : false;
+                                Reviews? review = snapshotReview.data;
+                                String doneText;
+
+                                if (!snapshotReview.hasData || review == null || review.id == null || review.id == 0) {
+                                  doneText = "Đánh giá";
+                                } else {
+                                  doneText = "Đã đánh giá";
+                                }
+
 
                                 return Card(
                                   margin: EdgeInsets.all(10),
@@ -676,16 +705,13 @@ class _DanhGiaTabState extends State<DanhGiaTab> {
                                                 fontWeight: FontWeight.bold)),
                                         SizedBox(height: 5),
                                         FutureBuilder(
-                                          future: OrderController()
-                                              .getAllByOrder(order.order_id),
-                                          builder: (context, snapshot) {
-                                            if (snapshot.connectionState ==
-                                                ConnectionState.waiting) {
+                                          future: OrderController().getAllByOrder(order.order_id),
+                                          builder: (context, snapshotOrderItems) {
+                                            if (snapshotOrderItems.connectionState == ConnectionState.waiting) {
                                               return CircularProgressIndicator();
-                                            } else if (snapshot.hasError) {
-                                              return Text("Error: ${snapshot.error}");
-                                            } else if (snapshot.data == null ||
-                                                snapshot.data!.body == null) {
+                                            } else if (snapshotOrderItems.hasError) {
+                                              return Text("Error: ${snapshotOrderItems.error}");
+                                            } else if (snapshotOrderItems.data == null || snapshotOrderItems.data!.body == null) {
                                               return Center(
                                                 child: Text(
                                                   "Không có đơn hàng",
@@ -695,76 +721,75 @@ class _DanhGiaTabState extends State<DanhGiaTab> {
                                                 ),
                                               );
                                             } else {
-                                              List<dynamic> list =
-                                                  snapshot.data!.body;
+                                              List<dynamic> list = snapshotOrderItems.data!.body;
                                               return ListView.builder(
                                                 shrinkWrap: true,
-                                                physics:
-                                                NeverScrollableScrollPhysics(),
+                                                physics: NeverScrollableScrollPhysics(),
                                                 itemCount: list.length,
                                                 itemBuilder: (context, index) {
                                                   var orderItem = list[index];
-
-                                                  return Column(
+                                                  return Row(
                                                     children: [
-                                                      Row(
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
-                                                          Column(
-                                                            crossAxisAlignment:
-                                                            CrossAxisAlignment.start,
-                                                            children: [
-                                                              Padding(
-                                                                padding: const EdgeInsets
-                                                                    .symmetric(vertical: 5.0),
-                                                                child: Row(
-                                                                  children: [
-                                                                    Padding(
-                                                                      padding: const EdgeInsets.all(10),
-                                                                      child: (orderItem['dish_img'] != null &&
-                                                                          orderItem['dish_img'].startsWith('data:image/jpeg;base64,'))
-                                                                          ? Image.memory(
-                                                                        base64Decode(orderItem['dish_img'].substring('data:image/jpeg;base64,'.length)),
-                                                                        width: 60,
-                                                                        height: 60,
-                                                                        fit: BoxFit.cover,
-                                                                        errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
-                                                                          return const Icon(Icons.error);
-                                                                        },
-                                                                      )
-                                                                          : Image.asset(
-                                                                        "assets/images/image.png",
-                                                                        width: 60,
-                                                                        height: 60,
-                                                                        fit: BoxFit.cover,
-                                                                      ),
-                                                                    ),
-                                                                    SizedBox(width: 10),
-                                                                    Text(
-                                                                      orderItem['dish_name'],
-                                                                      style: TextStyle(color: Constants.textColor, fontSize: 15),
-                                                                    ),
-                                                                  ],
+                                                          Padding(
+                                                            padding: const EdgeInsets.symmetric(vertical: 5.0),
+                                                            child: Row(
+                                                              children: [
+                                                                Padding(
+                                                                  padding: const EdgeInsets.all(10),
+                                                                  child: (orderItem['dish_img'] != null &&
+                                                                      orderItem['dish_img'].startsWith('data:image/jpeg;base64,'))
+                                                                      ? Image.memory(
+                                                                    base64Decode(orderItem['dish_img'].substring('data:image/jpeg;base64,'.length)),
+                                                                    width: 60,
+                                                                    height: 60,
+                                                                    fit: BoxFit.cover,
+                                                                    errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+                                                                      return const Icon(Icons.error);
+                                                                    },
+                                                                  )
+                                                                      : Image.asset(
+                                                                    "assets/images/image.png",
+                                                                    width: 60,
+                                                                    height: 60,
+                                                                    fit: BoxFit.cover,
+                                                                  ),
                                                                 ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          Spacer(),
-                                                          Column(
-                                                            crossAxisAlignment: CrossAxisAlignment.end,
-                                                            children: [
-                                                              Text(
-                                                                formatPrice(order.total),
-                                                                style: TextStyle(color: Constants.primaryColor, fontSize: 16),
-                                                              ),
-                                                              Text(
-                                                                '${orderItem['quantity']} món',
-                                                                style: TextStyle(color: Constants.lightTextColor, fontSize: 16),
-                                                              ),
-                                                            ],
+                                                                SizedBox(width: 10),
+                                                                Text(
+                                                                  orderItem['dish_name'],
+                                                                  style: TextStyle(
+                                                                    color: Constants.textColor,
+                                                                    fontSize: 15,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
                                                           ),
                                                         ],
                                                       ),
-                                                      SizedBox(height: 10),
+                                                      Spacer(),
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                                        children: [
+                                                          Text(
+                                                            formatPrice(order.total),
+                                                            style: TextStyle(
+                                                              color: Constants.primaryColor,
+                                                              fontSize: 16,
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            '${orderItem['quantity']} món',
+                                                            style: TextStyle(
+                                                              color: Constants.lightTextColor,
+                                                              fontSize: 16,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
                                                     ],
                                                   );
                                                 },
@@ -773,8 +798,7 @@ class _DanhGiaTabState extends State<DanhGiaTab> {
                                           },
                                         ),
                                         Row(
-                                          mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
                                             Expanded(
                                               child: ElevatedButton(
@@ -782,23 +806,21 @@ class _DanhGiaTabState extends State<DanhGiaTab> {
                                                   foregroundColor: Colors.white,
                                                   backgroundColor: Colors.pinkAccent,
                                                 ),
-                                                onPressed: isReviewed
-                                                    ? null
-                                                    : () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (context) => ReviewScreen(
-                                                        resID: res!.id,
-                                                        userID: user_id,
-                                                        orderID: order.order_id,
+                                                onPressed: () {
+                                                  if (doneText == "Đánh giá") {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) => ReviewScreen(
+                                                          resID: res!.id,
+                                                          userID: user_id,
+                                                          orderID: order.order_id,
+                                                        ),
                                                       ),
-                                                    ),
-                                                  ).then((_) {
-                                                    setState(() {}); // Refresh to show updated status
-                                                  });
+                                                    );
+                                                  }
                                                 },
-                                                child: Text(isReviewed ? "Đã đánh giá" : "Đánh giá"),
+                                                child: Text(doneText),
                                               ),
                                             ),
                                             SizedBox(width: 5),
@@ -810,9 +832,11 @@ class _DanhGiaTabState extends State<DanhGiaTab> {
                                                 ),
                                                 onPressed: () {
                                                   Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                          builder: (context) => DetailDish(resID: res!.id)));
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) => DetailDish(resID: res!.id),
+                                                    ),
+                                                  );
                                                 },
                                                 child: Text('Đặt lại'),
                                               ),

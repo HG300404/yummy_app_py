@@ -1,0 +1,2 @@
+C:/N3_HK2/Automation/yummy_app_py/android/app/.cxx/Debug/1t414h19/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/N3_HK2/Automation/yummy_app_py/android/app/.cxx/Debug/1t414h19/arm64-v8a/CMakeFiles/rebuild_cache.dir
