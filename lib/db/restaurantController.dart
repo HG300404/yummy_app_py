@@ -7,7 +7,7 @@ import '../config.dart';
 class RestaurantController {
   //getAll
   Future<ApiResponse> getTop() async {
-    var url = Uri.parse('${Config.baseUrl}/restaurant/getAllHome');
+    var url = Uri.parse('${Config.baseUrl}/restaurants/order-by-rate/');
     var response = await http.get(
       url,
       headers: <String, String>{
@@ -20,7 +20,7 @@ class RestaurantController {
     ApiResponse apiResponse = ApiResponse(response.statusCode, parsedJson);
     return apiResponse;
   }
-  //getItem
+
   Future<ApiResponse> getItem(int id) async {
     var url = Uri.parse('${Config.baseUrl}/restaurant/getItem/${id}');
     var response = await http.get(

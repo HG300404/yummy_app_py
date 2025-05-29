@@ -55,4 +55,18 @@ class DishController {
     return apiResponse;
   }
 
+  // search dish
+  Future<ApiResponse> searchDish(String input) async {
+    var url = Uri.parse('http://10.0.2.2:8000/api/dish/searchDish/${input}');
+    var response = await http.get(
+      url,
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+    );
+
+    ApiResponse apiResponse = ApiResponse(response.statusCode, response.body);
+    return apiResponse;
+  }
+
 }

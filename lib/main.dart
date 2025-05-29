@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
       designSize: const Size(360, 640),
       builder: (BuildContext context, Widget? _) => MaterialApp(
         title: 'Onboarding Screen',
-        home: SignIn(),
+        home: OnboardingScreen(),
         debugShowCheckedModeBanner: false,
       ),
     );

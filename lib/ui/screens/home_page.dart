@@ -15,8 +15,8 @@ import '../widget/common_widget/popular_resutaurant_row.dart';
 import '../widget/common_widget/recent_item_row.dart';
 import '../widget/common_widget/round_textfield.dart';
 import '../widget/common_widget/view_all_title_row.dart';
+import 'orderScreen.dart';
 import 'chat.dart';
-
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -136,9 +136,14 @@ class _HomePageState extends State<HomePage> {
                           fontWeight: FontWeight.w800),
                     ),
                     IconButton(
-                      onPressed: () {
-                        // Navigate to the order view
-                      },
+
+                       onPressed: () {
+                         // Navigator.push(
+                         // context,
+                         //     MaterialPageRoute(
+                         //  builder: (context) => OrderScreen()));
+                 },
+
                       icon: Image.asset(
                         "assets/images/shopping-cart.png",
                         width: 25,
@@ -271,7 +276,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      // Floating action button for the chat icon
+
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // Navigate to ChatScreen when the button is pressed

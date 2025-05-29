@@ -40,7 +40,7 @@ class _OrderScreenState extends State<OrderScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 3, vsync: this,  initialIndex: 0);
     _tabController.addListener(_tabChanged); // Lắng nghe sự thay đổi tab
     _getUserId().then((_) {
       _getItem();
@@ -170,7 +170,7 @@ class DangDenTab extends StatelessWidget {
         } else {
           final user_id = snapshot.data ?? 0;
           return StreamBuilder<List<FirebaseModel>>(
-            stream: _controller.getAll(user_id.toInt()),
+            stream: _controller.getAll(user_id.toInt(), "Hoàn thành"),
             builder: (context, snapshot1) {
               if (snapshot1.data == null || snapshot1.data!.isEmpty) {
                 return Center(
@@ -533,9 +533,10 @@ class LichSuTab extends StatelessWidget {
     );
   }
 }
-
 class DanhGiaTab extends StatelessWidget {
   // Định dạng giá trị tiền
+
+
   String formatPrice(num price) {
     final formatter = NumberFormat("#,##0", "vi_VN");
     return "${formatter.format(price)}đ";
@@ -570,6 +571,7 @@ class DanhGiaTab extends StatelessWidget {
                       color: Colors.grey,
                       fontSize: 16,
                     ),
+
                   ),
                 );
               } else {
@@ -593,7 +595,6 @@ class DanhGiaTab extends StatelessWidget {
                       try {
                         ApiResponse response =
                         await RestaurantController().getItem(resId);
-
                         if (response.statusCode == 200) {
                           Map<String, dynamic> data = response.body;
                           res = Restaurants.fromMap(data);
@@ -601,7 +602,6 @@ class DanhGiaTab extends StatelessWidget {
                       } catch (error) {
                         print(error);
                       }
-
                       return res;
                     }
 
@@ -640,12 +640,36 @@ class DanhGiaTab extends StatelessWidget {
                         } else if (snapshotRes.hasError) {
                           return Text("Error: ${snapshotRes.error}");
                         } else {
-                          Restaurants? res = snapshotRes.data;
+                          Restaurants? res = snapshot.data;
+
+                          Future<Reviews> _getReview(int order_id) async {
+                            Reviews reviews = Reviews(
+                              id: 0,
+                              order_id: 0,
+                              user_id: 0,
+                              restaurant_id: 0,
+                              rating: 0,
+                              comment: '',
+                              created_at: null,
+                              updated_at: null,
+                            );
+                            try {
+                              ApiResponse response =
+                              await ReviewController().getItem(order_id);
+                              if (response.statusCode == 200) {
+                                Map<String, dynamic> data = response.body;
+                                reviews = Reviews.fromMap(data);
+                              }
+                            } catch (error) {
+                              print(error);
+                            }
+                            return reviews;
+                          }
 
                           return FutureBuilder<Reviews>(
                             future: _getReview(order.order_id),
-                            builder: (context, snapshotReview) {
-                              if (snapshotReview.connectionState == ConnectionState.waiting) {
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
                                 return CircularProgressIndicator();
                               } else if (snapshotReview.hasError) {
                                 return Text("Error: ${snapshotReview.error}");
@@ -659,13 +683,15 @@ class DanhGiaTab extends StatelessWidget {
                                   doneText = "Đã đánh giá";
                                 }
 
+
                                 return Card(
                                   margin: EdgeInsets.all(10),
                                   color: Constants.backgroundTable,
                                   child: Padding(
                                     padding: EdgeInsets.all(10),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
                                       children: [
                                         Text('Đồ ăn ${order.order_id}',
                                             style: TextStyle(
@@ -690,9 +716,8 @@ class DanhGiaTab extends StatelessWidget {
                                                 child: Text(
                                                   "Không có đơn hàng",
                                                   style: TextStyle(
-                                                    color: Colors.grey,
-                                                    fontSize: 16,
-                                                  ),
+                                                      color: Colors.grey,
+                                                      fontSize: 16),
                                                 ),
                                               );
                                             } else {
@@ -838,6 +863,7 @@ class DanhGiaTab extends StatelessWidget {
     );
   }
 }
+
 
 class GioHangTab extends StatelessWidget {
   final Map<int, Map<dynamic, dynamic>> cart;
