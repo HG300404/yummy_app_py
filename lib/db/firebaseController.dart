@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
 
 import '../model/firebaseModel.dart';
 
@@ -70,4 +71,5 @@ class FirebaseController {
       print('Failed to save data to Firebase: $error');
     }
   }
+
 }

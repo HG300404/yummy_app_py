@@ -535,7 +535,7 @@ class LichSuTab extends StatelessWidget {
 }
 
 class DanhGiaTab extends StatelessWidget {
-  // Định dạng giá trị
+  // Định dạng giá trị tiền
   String formatPrice(num price) {
     final formatter = NumberFormat("#,##0", "vi_VN");
     return "${formatter.format(price)}đ";
@@ -546,7 +546,6 @@ class DanhGiaTab extends StatelessWidget {
     return prefs.getInt('user_id') ?? 0;
   }
 
-  String done = "Đã đánh giá";
   final FirebaseController _controller = FirebaseController();
 
   @override
@@ -563,23 +562,22 @@ class DanhGiaTab extends StatelessWidget {
           return StreamBuilder<List<FirebaseModel>>(
             stream: _controller.getOrdered(user_id.toInt(), "Hoàn thành"),
             builder: (context, snapshot1) {
-              // Kiểm tra nếu không có dữ liệu
               if (snapshot1.data == null || snapshot1.data!.isEmpty) {
                 return Center(
                   child: Text(
-                    "Không có đơn hàng cần đánh giá", // Dòng chữ thông báo
+                    "Không có đơn hàng cần đánh giá",
                     style: TextStyle(
-                      color: Colors.grey, // Màu chữ nhạt
-                      fontSize: 16, // Kích thước chữ
+                      color: Colors.grey,
+                      fontSize: 16,
                     ),
                   ),
                 );
               } else {
-                final orders = snapshot1.data;
+                final orders = snapshot1.data!;
                 return ListView.builder(
-                  itemCount: orders?.length ?? 0,
+                  itemCount: orders.length,
                   itemBuilder: (context, index) {
-                    final order = orders?[index];
+                    final order = orders[index];
 
                     Future<Restaurants> _getItem(int resId) async {
                       Restaurants res = Restaurants(
@@ -607,55 +605,58 @@ class DanhGiaTab extends StatelessWidget {
                       return res;
                     }
 
+                    Future<Reviews> _getReview(int order_id) async {
+                      Reviews reviews = Reviews(
+                        id: 0,
+                        order_id: 0,
+                        user_id: 0,
+                        restaurant_id: 0,
+                        rating: 0,
+                        comment: '',
+                        created_at: null,
+                        updated_at: null,
+                      );
+
+                      try {
+                        ApiResponse response =
+                        await ReviewController().getItem(order_id);
+
+                        if (response.statusCode == 200) {
+                          Map<String, dynamic> data = response.body;
+                          reviews = Reviews.fromMap(data);
+                        }
+                      } catch (error) {
+                        print(error);
+                      }
+
+                      return reviews;
+                    }
+
                     return FutureBuilder<Restaurants>(
-                      future: _getItem(order!.res_id),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                      future: _getItem(order.res_id),
+                      builder: (context, snapshotRes) {
+                        if (snapshotRes.connectionState == ConnectionState.waiting) {
                           return CircularProgressIndicator();
-                        } else if (snapshot.hasError) {
-                          return Text("Error: ${snapshot.error}");
+                        } else if (snapshotRes.hasError) {
+                          return Text("Error: ${snapshotRes.error}");
                         } else {
-                          Restaurants? res = snapshot.data;
-
-                          Future<Reviews> _getReview(int order_id) async {
-                            Reviews reviews = Reviews(
-                              id: 0,
-                              order_id: 0,
-                              user_id: 0,
-                              restaurant_id: 0,
-                              rating: 0,
-                              comment: '',
-                              created_at: null,
-                              updated_at: null,
-                            );
-
-                            try {
-                              ApiResponse response = await ReviewController()
-                                  .getItem(order.order_id);
-
-                              if (response.statusCode == 200) {
-                                Map<String, dynamic> data = response.body;
-                                reviews = Reviews.fromMap(data);
-                              }
-                            } catch (error) {
-                              print(error);
-                            }
-
-                            return reviews;
-                          }
+                          Restaurants? res = snapshotRes.data;
 
                           return FutureBuilder<Reviews>(
                             future: _getReview(order.order_id),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
+                            builder: (context, snapshotReview) {
+                              if (snapshotReview.connectionState == ConnectionState.waiting) {
                                 return CircularProgressIndicator();
-                              } else if (snapshot.hasError) {
-                                return Text("Error: ${snapshot.error}");
+                              } else if (snapshotReview.hasError) {
+                                return Text("Error: ${snapshotReview.error}");
                               } else {
-                                Reviews? review = snapshot.data;
-                                if (review?.id == null) {
-                                  done = "Đánh giá";
+                                Reviews? review = snapshotReview.data;
+                                String doneText;
+
+                                if (!snapshotReview.hasData || review == null || review.id == null || review.id == 0) {
+                                  doneText = "Đánh giá";
+                                } else {
+                                  doneText = "Đã đánh giá";
                                 }
 
                                 return Card(
@@ -678,126 +679,92 @@ class DanhGiaTab extends StatelessWidget {
                                                 fontWeight: FontWeight.bold)),
                                         SizedBox(height: 5),
                                         FutureBuilder(
-                                          future: OrderController()
-                                              .getAllByOrder(order!.order_id),
-                                          builder: (context, snapshot) {
-                                            if (snapshot.connectionState ==
-                                                ConnectionState.waiting) {
+                                          future: OrderController().getAllByOrder(order.order_id),
+                                          builder: (context, snapshotOrderItems) {
+                                            if (snapshotOrderItems.connectionState == ConnectionState.waiting) {
                                               return CircularProgressIndicator();
-                                            } else if (snapshot.hasError) {
-                                              return Text(
-                                                  "Error: ${snapshot.error}");
-                                            } else if (snapshot.data == null ||
-                                                snapshot.data!.body == null) {
+                                            } else if (snapshotOrderItems.hasError) {
+                                              return Text("Error: ${snapshotOrderItems.error}");
+                                            } else if (snapshotOrderItems.data == null || snapshotOrderItems.data!.body == null) {
                                               return Center(
                                                 child: Text(
                                                   "Không có đơn hàng",
                                                   style: TextStyle(
-                                                    color: Colors.grey, // Màu chữ nhạt
+                                                    color: Colors.grey,
                                                     fontSize: 16,
                                                   ),
                                                 ),
                                               );
                                             } else {
-                                              List<dynamic> list =
-                                                  snapshot.data!.body;
+                                              List<dynamic> list = snapshotOrderItems.data!.body;
                                               return ListView.builder(
                                                 shrinkWrap: true,
-                                                physics:
-                                                NeverScrollableScrollPhysics(),
+                                                physics: NeverScrollableScrollPhysics(),
                                                 itemCount: list.length,
                                                 itemBuilder: (context, index) {
                                                   var orderItem = list[index];
-
-                                                  return Column(
+                                                  return Row(
                                                     children: [
-                                                      Row(
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
-                                                          Column(
-                                                            crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                            children: [
-                                                              Padding(
-                                                                padding: const EdgeInsets
-                                                                    .symmetric(
-                                                                    vertical:
-                                                                    5.0),
-                                                                child: Row(
-                                                                  children: [
-                                                                    Padding(
-                                                                      padding:
-                                                                      const EdgeInsets
-                                                                          .all(10),
-                                                                      child:
-                                                                      (orderItem[
-                                                                      'dish_img'] !=
-                                                                          null &&
-                                                                          orderItem['dish_img']
-                                                                              .startsWith(
-                                                                              'data:image/jpeg;base64,'))
-                                                                          ? Image.memory(
-                                                                        base64Decode(orderItem['dish_img']
-                                                                            .substring(
-                                                                            'data:image/jpeg;base64,'.length)),
-                                                                        width: 60,
-                                                                        height: 60,
-                                                                        fit: BoxFit.cover,
-                                                                        errorBuilder:
-                                                                            (BuildContext context,
-                                                                            Object exception,
-                                                                            StackTrace? stackTrace) {
-                                                                          return const Icon(
-                                                                              Icons.error);
-                                                                        },
-                                                                      )
-                                                                          : Image.asset(
-                                                                        "assets/images/image.png", // Hình ảnh mặc định nếu không có base64 hợp lệ
-                                                                        width: 60,
-                                                                        height: 60,
-                                                                        fit: BoxFit.cover,
-                                                                      ),
-                                                                    ),
-                                                                    SizedBox(width: 10),
-                                                                    Text(
-                                                                      orderItem[
-                                                                      'dish_name'],
-                                                                      style: TextStyle(
-                                                                        color: Constants.textColor,
-                                                                        fontSize: 15,
-                                                                      ),
-                                                                    ),
-                                                                  ],
+                                                          Padding(
+                                                            padding: const EdgeInsets.symmetric(vertical: 5.0),
+                                                            child: Row(
+                                                              children: [
+                                                                Padding(
+                                                                  padding: const EdgeInsets.all(10),
+                                                                  child: (orderItem['dish_img'] != null &&
+                                                                      orderItem['dish_img'].startsWith('data:image/jpeg;base64,'))
+                                                                      ? Image.memory(
+                                                                    base64Decode(orderItem['dish_img'].substring('data:image/jpeg;base64,'.length)),
+                                                                    width: 60,
+                                                                    height: 60,
+                                                                    fit: BoxFit.cover,
+                                                                    errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+                                                                      return const Icon(Icons.error);
+                                                                    },
+                                                                  )
+                                                                      : Image.asset(
+                                                                    "assets/images/image.png",
+                                                                    width: 60,
+                                                                    height: 60,
+                                                                    fit: BoxFit.cover,
+                                                                  ),
                                                                 ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          Spacer(),
-                                                          Column(
-                                                            crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .end,
-                                                            children: [
-                                                              Text(
-                                                                formatPrice(order.total),
-                                                                style: TextStyle(
-                                                                  color: Constants.primaryColor,
-                                                                  fontSize: 16,
+                                                                SizedBox(width: 10),
+                                                                Text(
+                                                                  orderItem['dish_name'],
+                                                                  style: TextStyle(
+                                                                    color: Constants.textColor,
+                                                                    fontSize: 15,
+                                                                  ),
                                                                 ),
-                                                              ),
-                                                              Text(
-                                                                '${orderItem['quantity']} món',
-                                                                style: TextStyle(
-                                                                  color: Constants
-                                                                      .lightTextColor,
-                                                                  fontSize: 16,
-                                                                ),
-                                                              ),
-                                                            ],
+                                                              ],
+                                                            ),
                                                           ),
                                                         ],
                                                       ),
-                                                      SizedBox(height: 10),
+                                                      Spacer(),
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                                        children: [
+                                                          Text(
+                                                            formatPrice(order.total),
+                                                            style: TextStyle(
+                                                              color: Constants.primaryColor,
+                                                              fontSize: 16,
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            '${orderItem['quantity']} món',
+                                                            style: TextStyle(
+                                                              color: Constants.lightTextColor,
+                                                              fontSize: 16,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
                                                     ],
                                                   );
                                                 },
@@ -806,58 +773,45 @@ class DanhGiaTab extends StatelessWidget {
                                           },
                                         ),
                                         Row(
-                                          mainAxisAlignment:
-                                          MainAxisAlignment
-                                              .spaceBetween,
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
                                             Expanded(
                                               child: ElevatedButton(
-                                                style:
-                                                ElevatedButton.styleFrom(
-                                                  foregroundColor:
-                                                  Colors.white,
-                                                  backgroundColor:
-                                                  Colors.pinkAccent,
+                                                style: ElevatedButton.styleFrom(
+                                                  foregroundColor: Colors.white,
+                                                  backgroundColor: Colors.pinkAccent,
                                                 ),
                                                 onPressed: () {
-                                                  if (done ==
-                                                      "Đánh giá") {
-                                                    print(res!.id);
+                                                  if (doneText == "Đánh giá") {
                                                     Navigator.push(
                                                       context,
                                                       MaterialPageRoute(
-                                                          builder: (context) => ReviewScreen(
-                                                              resID: res!
-                                                                  .id,
-                                                              userID:
-                                                              user_id,
-                                                              orderID:
-                                                              order.order_id)),
+                                                        builder: (context) => ReviewScreen(
+                                                          resID: res!.id,
+                                                          userID: user_id,
+                                                          orderID: order.order_id,
+                                                        ),
+                                                      ),
                                                     );
                                                   }
                                                 },
-                                                child: Text("${done}"),
+                                                child: Text(doneText),
                                               ),
                                             ),
                                             SizedBox(width: 5),
                                             Expanded(
                                               child: ElevatedButton(
-                                                style:
-                                                ElevatedButton.styleFrom(
-                                                  foregroundColor:
-                                                  Colors.pinkAccent,
-                                                  backgroundColor:
-                                                  Colors.white,
+                                                style: ElevatedButton.styleFrom(
+                                                  foregroundColor: Colors.pinkAccent,
+                                                  backgroundColor: Colors.white,
                                                 ),
                                                 onPressed: () {
                                                   Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                          builder:
-                                                              (context) =>
-                                                              DetailDish(
-                                                                  resID: res!.id) //replace with your new page
-                                                      ));
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) => DetailDish(resID: res!.id),
+                                                    ),
+                                                  );
                                                 },
                                                 child: Text('Đặt lại'),
                                               ),
