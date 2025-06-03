@@ -91,4 +91,20 @@ class OrderController {
     return apiResponse;
   }
 
+  //getItemByOrder_id
+  Future<ApiResponse> getItemByOrder(int order_id) async {
+    var url = Uri.parse('${Config.baseUrl}/order/getItem/${order_id}');
+    var response = await http.get(
+      url,
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+    );
+    var jsonResponse = utf8.decode(response.bodyBytes);
+    var parsedJson = jsonDecode(jsonResponse);
+
+    ApiResponse apiResponse = ApiResponse(response.statusCode, parsedJson);
+    return apiResponse;
+  }
+
 }

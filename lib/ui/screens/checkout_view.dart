@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_paypal/flutter_paypal.dart';
 import 'package:food_app/constants.dart';
 import 'package:food_app/db/orderController.dart';
 import 'package:food_app/model/orders.dart';
@@ -113,12 +112,29 @@ class _CheckoutViewState extends State<CheckoutView> {
     }
   }
 
+  Future<Orders?> _getOrders(int orderId) async {
+    try {
+      ApiResponse response = await OrderController().getItemByOrder(orderId);
+      if (response.statusCode == 200) {
+        // Trả về đối tượng Orders được parse từ response body
+        return Orders.fromMap(response.body);
+      } else {
+        _showSnackBar('Server error. Please try again later.', Colors.red);
+        return null;
+      }
+    } catch (error) {
+      print(error);
+      return null;
+    }
+  }
+
+
   List<dynamic> list = [];
   Map<int, Map<dynamic, dynamic>> cart = {};
   Future<void> _getCart() async {
     try {
       ApiResponse response =
-          await CartController().getAll(user_id, widget.resID);
+      await CartController().getAll(user_id, widget.resID);
       if (response.statusCode == 200) {
         setState(() {
           list = response.body;
@@ -176,6 +192,27 @@ class _CheckoutViewState extends State<CheckoutView> {
     }
   }
 
+  Future<void> createOrderItemVN(int order_id) async {
+    try {
+      ApiResponse response = await OrderController().createOrderItem(
+          order.id.toString(),
+          user_id.toString(),
+          widget.resID.toString(),
+          widget.note);
+      if (response.statusCode == 200) {
+        // setState(() {
+        //   list = jsonDecode(response.body);
+        //
+        // });
+      } else {
+        _showSnackBar('Server error. Please try again later.', Colors.red);
+      }
+    } catch (error) {
+      // Xử lý lỗi (nếu có)
+      print(error);
+    }
+  }
+
   Future<void> createOrderItem() async {
     try {
       ApiResponse response = await OrderController().createOrderItem(
@@ -198,13 +235,13 @@ class _CheckoutViewState extends State<CheckoutView> {
   }
 
   Future<void> saveDataToFirebase(
-    int user_id,
-    Users item,
-    Map<int, Map<dynamic, dynamic>> cart,
-    Orders order,
-    String note,
-    int res_id,
-  ) async {
+      int user_id,
+      Users item,
+      Map<int, Map<dynamic, dynamic>> cart,
+      Orders order,
+      String note,
+      int res_id,
+      ) async {
     final Customer customer = Customer(
       name: item.name,
       address: item.address!,
@@ -247,8 +284,9 @@ class _CheckoutViewState extends State<CheckoutView> {
     try {
       await createOrder();
       await createOrderItem();
-      await saveDataToFirebase(
-          user_id, item, cart, order, widget.note, widget.resID);
+      await saveDataToFirebase(user_id, item, cart, order, widget.note, widget.resID);
+      // Xóa từng món trong giỏ hàng trên server
+
       return true;
     } catch (error) {
       print(error);
@@ -264,6 +302,16 @@ class _CheckoutViewState extends State<CheckoutView> {
     return total;
   }
 
+  Future<void> clearCartItems(List<dynamic> cartList) async {
+    for (var cartItem in cartList) {
+      int dishId = cartItem['dish_id'];
+      ApiResponse deleteResponse = await CartController().delete(user_id, dishId, widget.resID);
+      if (deleteResponse.statusCode != 200) {
+        print('Xóa món $dishId thất bại với status code: ${deleteResponse.statusCode}');
+      }
+    }
+  }
+
   num getTotal() {
     num total = getTotalAmount() + 5000 - item.coin;
     return total;
@@ -271,45 +319,45 @@ class _CheckoutViewState extends State<CheckoutView> {
 
 
   Future<Map<String, dynamic>?> createVnpayOrder() async {
-  try {
-    final body = {
-      'user_id': user_id,
-      'restaurant_id': widget.resID,
-      'price': getTotalAmount().toInt(),
-      'ship': 5000,
-      'discount': item.coin,
-      'total_amount': getTotal().toInt(),
-    };
-    print('VNPay order body: $body');
-    final response = await http.post(
-      Uri.parse('https://7e53-2001-ee1-db01-fd0-854d-a1a9-43df-30e3.ngrok-free.app/api/orders/vnpay/'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    );
-    print('VNPay order status: ${response.statusCode}');
-    print('VNPay order response: ${response.body}');
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final data = jsonDecode(utf8.decode(response.bodyBytes));
-      if (data['payment_url'] != null && data['order_id'] != null) {
-        print('payment_url: ${data['payment_url']}'); // Log payment_url tại đây
-        return {
-          'payment_url': data['payment_url'],
-          'order_id': data['order_id'],
-        };
+    try {
+      final body = {
+        'user_id': user_id,
+        'restaurant_id': widget.resID,
+        'price': getTotalAmount().toInt(),
+        'ship': 5000,
+        'discount': item.coin,
+        'total_amount': getTotal().toInt(),
+      };
+      print('VNPay order body: $body');
+      final response = await http.post(
+        Uri.parse('https://2173-123-19-63-78.ngrok-free.app/api/orders/vnpay/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+      print('VNPay order status: ${response.statusCode}');
+      print('VNPay order response: ${response.body}');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        if (data['payment_url'] != null && data['order_id'] != null) {
+          print('payment_url: ${data['payment_url']}'); // Log payment_url tại đây
+          return {
+            'payment_url': data['payment_url'],
+            'order_id': data['order_id'],
+          };
+        } else {
+          _showSnackBar('Thiếu thông tin thanh toán VNPay.', Colors.red);
+          return null;
+        }
       } else {
-        _showSnackBar('Thiếu thông tin thanh toán VNPay.', Colors.red);
+        _showSnackBar('Không thể tạo đơn VNPay.', Colors.red);
         return null;
       }
-    } else {
-      _showSnackBar('Không thể tạo đơn VNPay.', Colors.red);
+    } catch (e) {
+      print(e);
+      _showSnackBar('Lỗi kết nối VNPay.', Colors.red);
       return null;
     }
-  } catch (e) {
-    print(e);
-    _showSnackBar('Lỗi kết nối VNPay.', Colors.red);
-    return null;
   }
-}
 
 
 
@@ -354,7 +402,7 @@ class _CheckoutViewState extends State<CheckoutView> {
               ),
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(vertical: 15, horizontal: 25),
+                const EdgeInsets.symmetric(vertical: 15, horizontal: 25),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -616,61 +664,76 @@ class _CheckoutViewState extends State<CheckoutView> {
               ),
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(vertical: 20, horizontal: 25),
+                const EdgeInsets.symmetric(vertical: 20, horizontal: 25),
                 child: RoundButton(
 
                   title: "Đặt hàng",
-                    onPressed: () async {
-                      if (selectMethod == 1) {
-                        final result = await createVnpayOrder();
-                        if (result != null) {
-                          final paymentUrl = result['payment_url'];
-                          final orderId = result['order_id'];
-                          try {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => VnpayWebView(
-                                  paymentUrl: paymentUrl,
-                                  onPaymentResult: (success, orderId) {
-                                    Navigator.of(context).pop(); // Đóng WebView trước
-                                    if (success) {
-                                      Navigator.of(context).popUntil((route) => route.isFirst);
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('Thanh toán VNPay thành công!'),
-                                          backgroundColor: Colors.green,
-                                        ),
-                                      );
-                                    } else {
-                                      _showSnackBar('Thanh toán thất bại hoặc bị hủy.', Colors.red);
-                                    }
-                                  },
-                                ),
-                              ),
-                            );
-                          } catch (e) {
-                            print('Không thể mở view VNPay: $e');
-                          }
+                  onPressed: () async {
+                    if (selectMethod == 1) {
+                      final result = await createVnpayOrder();
+                      if (result != null) {
+                        final paymentUrl = result['payment_url'];
+                        final orderId = result['order_id'];
+
+                        // Lấy order và gán
+                        Orders? fetchedOrder = await _getOrders(orderId);
+                        if (fetchedOrder != null) {
+                          setState(() {
+                            order = fetchedOrder;
+                          });
                         } else {
-                          _showSnackBar('Không thể tạo đơn hàng VNPay.', Colors.red);
+                          _showSnackBar('Không lấy được thông tin đơn hàng.', Colors.red);
+                          return; // Hoặc xử lý phù hợp
+                        }
+
+                        try {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => VnpayWebView(
+                                paymentUrl: paymentUrl,
+                                onPaymentResult: (success, orderId) {
+                                  Navigator.of(context).pop(); // Đóng WebView trước
+                                  if (success) {
+                                    clearCartItems(list);
+                                    createOrderItemVN(orderId!);
+                                    saveDataToFirebase(user_id, item, cart, order, widget.note, widget.resID);
+                                    Navigator.of(context).popUntil((route) => route.isFirst);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Thanh toán VNPay thành công!'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                  } else {
+                                    _showSnackBar('Thanh toán thất bại hoặc bị hủy.', Colors.red);
+                                  }
+                                },
+                              ),
+                            ),
+                          );
+                        } catch (e) {
+                          print('Không thể mở view VNPay: $e');
                         }
                       } else {
-                        // Xử lý các phương thức khác như cũ
-                        handleOrderCreation().then((success) {
-                          if (success) {
-                            showModalBottomSheet(
-                              context: context,
-                              backgroundColor: Colors.pinkAccent,
-                              isScrollControlled: true,
-                              builder: (context) => const CheckoutMessageView(),
-                            );
-                          } else {
-                            _showSnackBar('Tạo đơn hàng thất bại.', Colors.red);
-                          }
-                        });
+                        _showSnackBar('Không thể tạo đơn hàng VNPay.', Colors.red);
                       }
-                    },
+                    } else {
+                      // Xử lý các phương thức khác như cũ
+                      handleOrderCreation().then((success) {
+                        if (success) {
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.pinkAccent,
+                            isScrollControlled: true,
+                            builder: (context) => const CheckoutMessageView(),
+                          );
+                        } else {
+                          _showSnackBar('Tạo đơn hàng thất bại.', Colors.red);
+                        }
+                      });
+                    }
+                  },
                 ),
               ),
             ],

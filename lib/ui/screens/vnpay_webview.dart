@@ -28,7 +28,7 @@ class _VnpayWebViewState extends State<VnpayWebView> {
             print('Redirect URL: ${request.url}');
             if (request.url.contains('api/vnpay/return')) {
               try {
-                final response = await http.get(Uri.parse(request.url)).timeout(const Duration(seconds: 10));
+                final response = await http.get(Uri.parse(request.url)).timeout(const Duration(seconds: 30));
                 print('Response Status: ${response.statusCode}');
                 print('Response Body: ${response.body}');
                 if (response.statusCode == 200) {

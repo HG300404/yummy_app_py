@@ -119,7 +119,7 @@ class _OrderScreenState extends State<OrderScreen>
       appBar: AppBar(
         title: Text('Đơn hàng',
             style:
-                TextStyle(color: Constants.white, fontWeight: FontWeight.bold)),
+            TextStyle(color: Constants.white, fontWeight: FontWeight.bold)),
         backgroundColor: Constants.primaryColor,
         bottom: TabBar(
           controller: _tabController,
@@ -143,6 +143,7 @@ class _OrderScreenState extends State<OrderScreen>
     );
   }
 }
+
 
 class DangDenTab extends StatelessWidget {
   Future<int> _getUserId() async {
@@ -172,27 +173,26 @@ class DangDenTab extends StatelessWidget {
           return StreamBuilder<List<FirebaseModel>>(
             stream: _controller.getAll(user_id.toInt(), "Hoàn thành"),
             builder: (context, snapshot1) {
-              if (snapshot1.data == null || snapshot1.data!.isEmpty) {
+              if (snapshot1.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              } else if (snapshot1.hasError) {
+                return Text("Error: ${snapshot1.error}");
+              } else if (snapshot1.data == null || snapshot1.data!.isEmpty) {
                 return Center(
                   child: Text(
-                    "Không có đơn hàng đang giao", // Dòng chữ thông báo
+                    "Không có đơn hàng đang giao",
                     style: TextStyle(
-                      color: Colors.grey, // Màu chữ nhạt
-                      fontSize: 16, // Kích thước chữ
+                      color: Colors.grey,
+                      fontSize: 16,
                     ),
                   ),
                 );
               } else {
-                final orders = snapshot1.data;
-                final models = snapshot1.data;
-                final modelString =
-                    _controller.firebaseModelListToString(models!);
-                print(modelString);
+                final orders = snapshot1.data!;
                 return ListView.builder(
-                  itemCount: orders?.length,
+                  itemCount: orders.length,
                   itemBuilder: (context, index) {
-                    final order = orders?[index];
-                    print("order_id: ${order?.status}");
+                    final order = orders[index];
                     Future<Restaurants> _getItem(int resId) async {
                       Restaurants res = Restaurants(
                         id: 0,
@@ -205,9 +205,7 @@ class DangDenTab extends StatelessWidget {
                       );
 
                       try {
-                        ApiResponse response =
-                            await RestaurantController().getItem(resId);
-
+                        final response = await RestaurantController().getItem(resId);
                         if (response.statusCode == 200) {
                           Map<String, dynamic> data = response.body;
                           res = Restaurants.fromMap(data);
@@ -215,16 +213,14 @@ class DangDenTab extends StatelessWidget {
                       } catch (error) {
                         print(error);
                       }
-
                       return res;
                     }
 
                     return FutureBuilder<Restaurants>(
-                      future: _getItem(order!.res_id),
+                      future: _getItem(order.res_id),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return CircularProgressIndicator();
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
                         } else if (snapshot.hasError) {
                           return Text("Error: ${snapshot.error}");
                         } else {
@@ -248,96 +244,78 @@ class DangDenTab extends StatelessWidget {
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold)),
                                   SizedBox(height: 5),
-                                  FutureBuilder(
-                                    future: OrderController()
-                                        .getAllByOrder(order!.order_id),
+                                  FutureBuilder<ApiResponse>(
+                                    future: OrderController().getAllByOrder(order.order_id),
                                     builder: (context, snapshot) {
-                                      if (snapshot.connectionState ==
-                                          ConnectionState.waiting) {
-                                        return CircularProgressIndicator();
+                                      if (snapshot.connectionState == ConnectionState.waiting) {
+                                        return Center(child: CircularProgressIndicator());
                                       } else if (snapshot.hasError) {
                                         return Text("Error: ${snapshot.error}");
+                                      } else if (!snapshot.hasData || snapshot.data == null) {
+                                        return Text("Không có dữ liệu");
                                       } else {
-                                        List<dynamic> list =
-                                            snapshot.data!.body;
+                                        // Giả sử API trả về kiểu dữ liệu là Map<String, dynamic> với key 'data' chứa List
+                                        final dataBody = snapshot.data!.body;
+                                        print(dataBody);
+                                        List<dynamic> list = [];
+                                        if (dataBody is Map<String, dynamic> && dataBody.containsKey('data')) {
+                                          list = dataBody['data'];
+                                        } else if (dataBody is List<dynamic>) {
+                                          list = dataBody;
+                                        } else {
+                                          return Text('Dữ liệu không đúng định dạng');
+                                        }
                                         return ListView.builder(
                                           shrinkWrap: true,
-                                          physics:
-                                              NeverScrollableScrollPhysics(),
+                                          physics: NeverScrollableScrollPhysics(),
                                           itemCount: list.length,
                                           itemBuilder: (context, index) {
-                                            var orderItem = list[
-                                                index]; // orderItem là đối tượng, không phải List
-
+                                            var orderItem = list[index];
                                             return Row(
                                               children: [
                                                 Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
-                                                    // Truy xuất trực tiếp vào orderItem['dishes'] nếu 'dishes' là một danh sách trong orderItem
                                                     Padding(
-                                                      padding: const EdgeInsets
-                                                          .symmetric(
-                                                          vertical: 5.0),
+                                                      padding: const EdgeInsets.symmetric(vertical: 5.0),
                                                       child: Row(
                                                         children: [
-                                                          // Xử lý hình ảnh từ Base64 (nếu có)
                                                           Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .all(10),
-                                                            child: (orderItem[
-                                                                            'dish_img'] !=
-                                                                        null &&
-                                                                    orderItem[
-                                                                            'dish_img']
-                                                                        .startsWith(
-                                                                            'data:image/jpeg;base64,'))
+                                                            padding: const EdgeInsets.all(10),
+                                                            child: (orderItem['dish_img'] != null &&
+                                                                orderItem['dish_img'].startsWith('data:image/jpeg;base64,'))
                                                                 ? Image.memory(
-                                                                    base64Decode(orderItem[
-                                                                            'dish_img']
-                                                                        .substring(
-                                                                            'data:image/jpeg;base64,'.length)),
-                                                                    width: 60,
-                                                                    height: 60,
-                                                                    fit: BoxFit
-                                                                        .cover,
-                                                                    errorBuilder: (BuildContext
-                                                                            context,
-                                                                        Object
-                                                                            exception,
-                                                                        StackTrace?
-                                                                            stackTrace) {
-                                                                      return const Icon(
-                                                                          Icons
-                                                                              .error);
-                                                                    },
-                                                                  )
+                                                              base64Decode(orderItem['dish_img']
+                                                                  .substring('data:image/jpeg;base64,'.length)),
+                                                              width: 60,
+                                                              height: 60,
+                                                              fit: BoxFit.cover,
+                                                              errorBuilder:
+                                                                  (BuildContext context, Object exception,
+                                                                  StackTrace? stackTrace) {
+                                                                return const Icon(Icons.error);
+                                                              },
+                                                            )
                                                                 : Image.asset(
-                                                                    "assets/images/image.png", // Hình ảnh mặc định nếu không có base64 hợp lệ
-                                                                    width: 60,
-                                                                    height: 60,
-                                                                    fit: BoxFit
-                                                                        .cover,
-                                                                  ),
+                                                              "assets/images/image.png",
+                                                              width: 60,
+                                                              height: 60,
+                                                              fit: BoxFit.cover,
+                                                            ),
                                                           ),
                                                           SizedBox(width: 10),
                                                           Text(
-                                                            orderItem[
-                                                                'dish_name'], // Truy cập trực tiếp vào 'dish_name' trong orderItem
+                                                            orderItem['dish_name'] ?? '',
                                                             style: TextStyle(
-                                                              color: Constants
-                                                                  .textColor,
+                                                              color: Constants.textColor,
                                                               fontSize: 15,
                                                             ),
                                                           ),
                                                           SizedBox(width: 10),
                                                           Text(
-                                                            "${orderItem['quantity']}", // Truy cập trực tiếp vào 'quantity' trong orderItem
+                                                            "${orderItem['quantity'] ?? ''}",
                                                             style: TextStyle(
-                                                              color: Constants
-                                                                  .textColor,
+                                                              color: Constants.textColor,
                                                               fontSize: 15,
                                                             ),
                                                           ),
@@ -348,26 +326,20 @@ class DangDenTab extends StatelessWidget {
                                                 ),
                                                 Spacer(),
                                                 Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.end,
+                                                  crossAxisAlignment: CrossAxisAlignment.end,
                                                   children: [
                                                     Text(
-                                                      formatPrice(order
-                                                          .total), // Hiển thị tổng giá của order
+                                                      formatPrice(order.total),
                                                       style: TextStyle(
-                                                        color: Constants
-                                                            .primaryColor,
+                                                        color: Constants.primaryColor,
                                                         fontSize: 16,
                                                       ),
                                                     ),
                                                     SizedBox(width: 10),
-
-                                                    // Hiển thị tổng số món ăn
                                                     Text(
-                                                      '${orderItem['quantity']} món', // Hiển thị 'length'
+                                                      '${orderItem['quantity'] ?? 0} món',
                                                       style: TextStyle(
-                                                        color: Constants
-                                                            .lightTextColor,
+                                                        color: Constants.lightTextColor,
                                                         fontSize: 16,
                                                       ),
                                                     ),
@@ -398,141 +370,7 @@ class DangDenTab extends StatelessWidget {
   }
 }
 
-class LichSuTab extends StatelessWidget {
-  final List<Map<String, dynamic>> history = [
-    {
-      'id': '#05054-674530315',
-      'shop': 'Highlands Coffee - Nguyễn Huệ',
-      'items': [
-        {'name': 'Cà phê sữa đá', 'image': 'assets/images/item_3.png'},
-        {'name': 'Bánh mì thịt', 'image': 'assets/images/item_1.png'}
-      ],
-      'total': 85000,
-      'date': '21/4 lúc 14:00',
-      'status': 'Đã giao'
-    },
-  ];
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          color: Constants.backgroundTable,
-          padding: EdgeInsets.all(10),
-          child: Row(
-            children: [
-              Icon(Icons.monetization_on, color: Colors.yellow),
-              SizedBox(width: 10),
-              Text('Đánh giá quán, nhận ngay 500 Xu',
-                  style: TextStyle(color: Constants.textColor, fontSize: 16)),
-              Spacer(),
-              Icon(Icons.arrow_forward_ios,
-                  size: 16, color: Constants.textColor),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: history.length,
-            itemBuilder: (context, index) {
-              final order = history[index];
-              return Card(
-                margin: EdgeInsets.all(10),
-                color: Constants.backgroundTable,
-                child: Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Đồ ăn ${order['id']}',
-                          style: TextStyle(
-                              color: Constants.textColor, fontSize: 16)),
-                      SizedBox(height: 5),
-                      Text(order['shop'],
-                          style: TextStyle(
-                              color: Constants.accentColor,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold)),
-                      SizedBox(height: 5),
-                      Row(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: order['items'].map<Widget>((item) {
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 5.0),
-                                child: Row(
-                                  children: [
-                                    Image.asset(item['image'], height: 60),
-                                    SizedBox(width: 10),
-                                    Text(item['name'],
-                                        style: TextStyle(
-                                            color: Constants.textColor,
-                                            fontSize: 16)),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          Spacer(),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text('${order['total']}đ',
-                                  style: TextStyle(
-                                      color: Constants.primaryColor,
-                                      fontSize: 16)),
-                              Text('${order['items'].length} món',
-                                  style: TextStyle(
-                                      color: Constants.lightTextColor,
-                                      fontSize: 16)),
-                              Text('Ngày đặt: ${order['date']}',
-                                  style: TextStyle(
-                                      color: Constants.lightTextColor)),
-                            ],
-                          )
-                        ],
-                      ),
-                      SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                backgroundColor: Colors.pinkAccent,
-                              ),
-                              onPressed: () {},
-                              child: Text(order['status']),
-                            ),
-                          ),
-                          SizedBox(width: 5),
-                          Expanded(
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                foregroundColor: Colors.pinkAccent,
-                                backgroundColor: Colors.white,
-                              ),
-                              onPressed: () {},
-                              child: Text('Đặt lại'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
 class DanhGiaTab extends StatelessWidget {
   // Định dạng giá trị tiền
 
@@ -640,7 +478,7 @@ class DanhGiaTab extends StatelessWidget {
                         } else if (snapshotRes.hasError) {
                           return Text("Error: ${snapshotRes.error}");
                         } else {
-                          Restaurants? res = snapshot.data;
+                          Restaurants? res = snapshotRes.data;
 
                           Future<Reviews> _getReview(int order_id) async {
                             Reviews reviews = Reviews(
@@ -659,6 +497,7 @@ class DanhGiaTab extends StatelessWidget {
                               if (response.statusCode == 200) {
                                 Map<String, dynamic> data = response.body;
                                 reviews = Reviews.fromMap(data);
+
                               }
                             } catch (error) {
                               print(error);
@@ -671,16 +510,24 @@ class DanhGiaTab extends StatelessWidget {
                             builder: (context, snapshot) {
                               if (snapshot.connectionState == ConnectionState.waiting) {
                                 return CircularProgressIndicator();
-                              } else if (snapshotReview.hasError) {
-                                return Text("Error: ${snapshotReview.error}");
+                              } else if (snapshot.hasError) {
+                                return Text("Error: ${snapshot.error}");
                               } else {
-                                Reviews? review = snapshotReview.data;
+                                Reviews? review = snapshot.data;
                                 String doneText;
 
-                                if (!snapshotReview.hasData || review == null || review.id == null || review.id == 0) {
+                                if (!snapshot.hasData || snapshot.data == null) {
+                                  print(snapshot.hasData);
+                                  // Dữ liệu chưa có, hoặc bị lỗi → xử lý như chưa đánh giá
                                   doneText = "Đánh giá";
                                 } else {
-                                  doneText = "Đã đánh giá";
+                                  Reviews review = snapshot.data!;
+                                  if (review.id == 0 || review.comment.isEmpty) {
+                                    doneText = "Đánh giá";
+                                  } else {
+                                    print(review);
+                                    doneText = "Đã đánh giá";
+                                  }
                                 }
 
 
@@ -895,13 +742,13 @@ class GioHangTab extends StatelessWidget {
                 children: [
                   item?['img'] != null
                       ? Image.memory(
-                          base64Decode(item?['img']
-                              .substring('data:image/jpeg;base64,'.length)),
-                          width: 60,
-                          height: 60,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Icon(Icons.error),
-                        )
+                    base64Decode(item?['img']
+                        .substring('data:image/jpeg;base64,'.length)),
+                    width: 60,
+                    height: 60,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Icon(Icons.error),
+                  )
                       : Icon(Icons.image_not_supported),
                   SizedBox(width: 10),
                   Expanded(

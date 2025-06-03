@@ -222,7 +222,7 @@ class _DetailDishState extends State<DetailDish> with SingleTickerProviderStateM
                             Icon(Icons.star, color: Colors.orange, size: 16),
                             SizedBox(width: 5),
                             Text(
-                              "${item.total_rate}",
+                              "${item.total_rate?.toStringAsFixed(1)}",
                               style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                             ),
                           ],
